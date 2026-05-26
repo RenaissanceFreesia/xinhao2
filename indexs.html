@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>信号与系统 | 交互式学习空间</title>
+  <title>信号与系统 | 交互式学习平台</title>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <style>
     * {
@@ -32,7 +32,6 @@
       padding-bottom: 60px;
     }
 
-    /* 导航 */
     nav {
       position: fixed;
       top: 0;
@@ -67,7 +66,6 @@
       color: white;
     }
 
-    /* 头部 */
     header {
       margin-top: 100px;
       text-align: center;
@@ -93,7 +91,6 @@
       opacity: 0.5;
     }
 
-    /* 布局 */
     .container {
       max-width: 1100px;
       margin: auto;
@@ -102,7 +99,6 @@
       gap: 30px;
     }
 
-    /* 卡片 */
     .card {
       background: var(--card);
       border-radius: 16px;
@@ -137,7 +133,6 @@
       left: -16px;
     }
 
-    /* 交互画布 */
     .wave-box {
       margin: 20px 0;
       text-align: center;
@@ -166,8 +161,10 @@
     button:hover {
       background: var(--m1);
     }
+    input[type="range"] {
+      margin: 0 10px;
+    }
 
-    /* 公式 */
     .formula {
       background: #f7f5f1;
       padding: 14px;
@@ -177,7 +174,6 @@
       border-left: 3px solid var(--m2);
     }
 
-    /* 返回顶部 */
     .back-top {
       position: fixed;
       bottom: 30px;
@@ -201,7 +197,7 @@
     <div class="nav-wrap">
       <ul>
         <li><a href="#intro">课程介绍</a></li>
-        <li><a href="#wave">波形交互</a></li>
+        <li><a href="#wave">动态波形</a></li>
         <li><a href="#convolution">卷积</a></li>
         <li><a href="#fourier">傅里叶</a></li>
         <li><a href="#sampling">抽样恢复</a></li>
@@ -210,14 +206,13 @@
   </nav>
 
   <header>
-    <h1>信号与系统 · 交互式学习空间</h1>
-    <p>时域 | 频域 | 卷积 | 抽样 | 交互实验</p>
+    <h1>信号与系统 · 交互式学习平台</h1>
+    <p>时域 | 频域 | 卷积 | 抽样 | 动态实验</p>
     <div class="divider"></div>
   </header>
 
   <div class="container">
 
-    <!-- 介绍 -->
     <div id="intro" class="card">
       <h2>📘 课程介绍</h2>
       <p>《信号与系统》是电子信息、通信、自动化专业的核心基础课，研究信号表示、系统特性、变换方法与工程应用。</p>
@@ -230,22 +225,19 @@
       </ul>
     </div>
 
-    <!-- 波形交互 -->
     <div id="wave" class="card">
-      <h2>📈 实时波形交互实验</h2>
-      <p>点击下方按钮可切换信号，实时观察波形变化。</p>
+      <h2>📈 动态正弦波实验（可调节）</h2>
+      <p>拖动滑块调节频率/幅度，观察波形实时变化。</p>
       <div class="wave-box">
         <canvas id="waveCanvas" width="700" height="260"></canvas>
         <div class="controls">
-          <button onclick="drawSin()">正弦信号</button>
-          <button onclick="drawStep()">阶跃信号</button>
-          <button onclick="drawImpulse()">冲激信号</button>
-          <button onclick="drawSa()">Sa信号</button>
+          <label>频率: <input type="range" id="freq" min="1" max="10" value="3"></label>
+          <label>幅度: <input type="range" id="amp" min="20" max="100" value="80"></label>
+          <button onclick="toggleAnimate()">暂停/播放</button>
         </div>
       </div>
     </div>
 
-    <!-- 卷积 -->
     <div id="convolution" class="card">
       <h2>🔁 卷积与LTI系统</h2>
       <p>卷积是LTI系统时域分析的核心，输出等于输入与冲激响应的卷积。</p>
@@ -259,7 +251,6 @@
       </ul>
     </div>
 
-    <!-- 傅里叶 -->
     <div id="fourier" class="card">
       <h2>📡 傅里叶变换（频域分析）</h2>
       <p>将信号从时域转换到频域，揭示频率成分。</p>
@@ -273,7 +264,6 @@
       </ul>
     </div>
 
-    <!-- 抽样 -->
     <div id="sampling" class="card">
       <h2>📶 奈奎斯特抽样与信号恢复</h2>
       <p>抽样频率 fs > 2fmax 时，可无失真恢复原信号。</p>
@@ -294,6 +284,10 @@
   <script>
     const canvas = document.getElementById('waveCanvas');
     const ctx = canvas.getContext('2d');
+    const freqSlider = document.getElementById('freq');
+    const ampSlider = document.getElementById('amp');
+    let t = 0;
+    let animate = true;
 
     function drawAxis() {
       ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -307,56 +301,32 @@
       ctx.stroke();
     }
 
-    function drawSin() {
+    function drawWave() {
       drawAxis();
+      const freq = parseFloat(freqSlider.value);
+      const amp = parseFloat(ampSlider.value);
       ctx.strokeStyle = '#a9b4b8';
       ctx.lineWidth = 2;
       ctx.beginPath();
       for(let x=0;x<canvas.width;x++){
-        let t = (x - canvas.width/2)/100;
-        let y = 80*Math.sin(3*t) + canvas.height/2;
+        let time = (x - canvas.width/2)/100;
+        let y = amp * Math.sin(freq * (time + t)) + canvas.height/2;
         if(x===0) ctx.moveTo(x,y);
         else ctx.lineTo(x,y);
       }
       ctx.stroke();
-    }
-
-    function drawStep() {
-      drawAxis();
-      ctx.strokeStyle = '#c9b9b0';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(50, canvas.height/2 + 80);
-      ctx.lineTo(canvas.width/2, canvas.height/2 + 80);
-      ctx.lineTo(canvas.width/2, canvas.height/2 - 80);
-      ctx.lineTo(canvas.width-50, canvas.height/2 - 80);
-      ctx.stroke();
-    }
-
-    function drawImpulse() {
-      drawAxis();
-      ctx.fillStyle = '#b8b0a8';
-      ctx.beginPath();
-      ctx.arc(canvas.width/2, canvas.height/2 - 80, 6, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    function drawSa() {
-      drawAxis();
-      ctx.strokeStyle = '#b4b8a9';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      for(let x=0;x<canvas.width;x++){
-        let t = (x - canvas.width/2)/80;
-        let y = t===0 ? -80 : -80*Math.sin(t)/t;
-        y += canvas.height/2;
-        if(x===0) ctx.moveTo(x,y);
-        else ctx.lineTo(x,y);
+      if(animate) {
+        t += 0.05;
+        requestAnimationFrame(drawWave);
       }
-      ctx.stroke();
     }
 
-    drawSin();
+    function toggleAnimate() {
+      animate = !animate;
+      if(animate) drawWave();
+    }
+
+    drawWave();
 
     document.querySelectorAll('nav a').forEach(a=>{
       a.addEventListener('click',e=>{
